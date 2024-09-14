@@ -11,7 +11,8 @@ You must have a somewhat modern version of python installed, and Docker
 - create a venv in your current dir: `python3 -m venv venv`
 - activate the venv: `source venv/bin/activate`
 - install deps: `pip install -r requirements.txt`
-- run the demo chat app: `python3 main.py`
+- run the demo chat app: `python3 chat.py gemma2:2b`  
+  (replace `gemma2:2b` with any model present on [ollama](https://ollama.com/library/))
 
 
 # Connecting openwebui to ollama

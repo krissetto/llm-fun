@@ -1,39 +1,27 @@
-services:
-
-
-  ollama:
+x-shared-bits:
+  ollama-common: &ollama-common
     image: ollama/ollama
-    volumes:
-      - ollama:/root/.ollama
     healthcheck:
       test: ollama --version || exit 1
       interval: 5s
-    ports: 
-      - 11434:11434
     deploy:
       resources:
         reservations:
           devices:
-            - driver: ${OLLAMA_GPU_DRIVER-nvidia}
-              count: ${OLLAMA_GPU_COUNT-1}
-              capabilities:
-                - gpu
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
 
-  open-webui:
-    image: ghcr.io/open-webui/open-webui:${WEBUI_DOCKER_TAG-main}
-    volumes:
-      - open-webui:/app/backend/data
-    depends_on:
-      - ollama
+services:
+
+  ollama-embeddings:
+    <<: *ollama-common
     ports:
-      - ${OPEN_WEBUI_PORT-3000}:8080
-    environment:
-      - 'OLLAMA_BASE_URL=http://ollama:11434'
-      - 'WEBUI_SECRET_KEY='
-    restart: unless-stopped
-
-
+      - 11435:11434
+    volumes:
+      - ollama-embeddings:/root/.ollama
+  
   pgadmin:
     image: dpage/pgadmin4
     restart: always
@@ -44,9 +32,6 @@ services:
       PGADMIN_DEFAULT_PASSWORD: langchain
     volumes:
       - pgadmin-data:/var/lib/pgadmin
-    profiles:
-      - rag
-
 
   pgvector:
     image: pgvector/pgvector:pg16
@@ -63,12 +48,10 @@ services:
       - 6024:5432
     volumes:
       - local_pgdata:/var/lib/postgresql/data
-    profiles:
-      - rag
+
 
 
 volumes:
   local_pgdata:
+  ollama-embeddings:
   pgadmin-data:
-  ollama:
-  open-webui:

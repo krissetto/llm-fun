@@ -28,9 +28,10 @@ on conflict (url) do nothing
 returning id
 '''
 
+
 INSERT_CHUNK_TEXT_MAPPING = '''
 insert into chunk_text_mapping (chunk_text) values ($1)
-on conflict (chunk_text) do nothing
+on conflict (chunk_text_hash) do nothing
 returning id
 '''
 
@@ -39,11 +40,11 @@ INSERT_CHUNKED_EMBEDDING_QUERY = '''
 insert into embeddings (url_id, chunk_text_id, chunk_embedding) 
 values (
     (select id from url_mapping where url = $1), 
-    (select id from chunk_text_mapping where chunk_text = $2), 
+    (select id from chunk_text_mapping where chunk_text_hash = md5($2)), 
     $3
 )
 on conflict (url_id, chunk_text_id)
-do update set chunk_text_id = (select id from chunk_text_mapping where chunk_text = $2), chunk_embedding = $3;
+do update set chunk_text_id = (select id from chunk_text_mapping where chunk_text_hash = md5($2)), chunk_embedding = $3;
 '''
 
 

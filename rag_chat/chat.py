@@ -13,7 +13,7 @@ from db import db
 
 
 SHOULD_EXIT = False
-OLLAMA_HOST = 'http://localhost:11435'
+OLLAMA_HOST = 'http://localhost:11434'
 EMBEDDINGS_MODEL = "mxbai-embed-large"
 
 ollama_client = AsyncClient(host=OLLAMA_HOST)
@@ -28,8 +28,8 @@ async def main() -> None:
     # if not provided, use the default model
     chat_model = sys.argv[1] if len(sys.argv) > 1 else "gemma2:2b"
 
-    # pull model so we're sure it's available
-    await pull_model(chat_model)
+    # pull models so we're sure they're available
+    await pull_models([chat_model, EMBEDDINGS_MODEL])
 
     # pick whatever model you want to chat with
     # some may behave oddly or expect messages to be formatted differently
@@ -59,6 +59,13 @@ async def pull_model(model: str):
     print("\n\n")
 
 
+async def pull_models(models: List[str]):
+    """uses ollama to pull a list of models"""
+
+    for model in models:
+        await pull_model(model)
+
+
 async def is_model_installed(model: str) -> bool:
     """checks if a model is installed in ollama"""
 
@@ -79,18 +86,19 @@ async def chat(model: str):
         Message(
             role="system",
             content="""
-                You are a professional, yet occasionally witty, Docker customer service assistant.
+                You are an expert assistant. Your job is to help the user answer their questions.
                 Be as helpful as you possibly can. Be cool. Be suave. Very demure.
-                Only help with Docker, Docker products, and Docker-related topics and questions. For anything else, respond that it's outside your area of expertise. 
-                Give thorough responses with examples.
-                Use the provided <context></context> as your main source of information to determine what to say.
+                You can only help with Docker, Docker products, and Docker-related topics and questions. For anything else, respond that it's outside your area of expertise. 
+                Give thorough responses with examples
+                Use the provided <context></context> as your main source of information when responding,
+                and always reference the source you use in your response.
             """
         ),
         Message(
             role="assistant",
             content="""
-                You are an assistant, attempting to help the user as best you can. Below is your entire chat thread.
-                When responding with code, use markdown. Format your responses nicely.
+                You are an assistant, attempting to help the user as best you can. Below is the entire chat thread.
+                When responding with code, use markdown. Format your responses in markdown whenever appropriate.
             """
         )
     ]

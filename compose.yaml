@@ -53,22 +53,22 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: rag
+      POSTGRES_DB: rag2
     healthcheck:
-      test: pg_isready -U postgres -d rag
+      test: pg_isready -U postgres -d rag2
       interval: 10s
       timeout: 3s
       retries: 3
     ports:
       - 6024:5432
     volumes:
-      - local_pgdata:/var/lib/postgresql/data
+      - local_pgdata2:/var/lib/postgresql/data
     profiles:
       - rag
 
 
 volumes:
-  local_pgdata:
+  local_pgdata2:
   pgadmin-data:
   ollama:
   open-webui:

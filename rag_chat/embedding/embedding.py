@@ -21,7 +21,8 @@ from chunking.chunking import chunk_docs
 from scraping.scraping import get_docs_to_embed
 
 
-EMBEDDINGS_MODEL = "mxbai-embed-large"
+# EMBEDDINGS_MODEL = "mxbai-embed-large"
+EMBEDDINGS_MODEL = "nomic-embed-text"
 
 
 async def create_embeddings() -> None:
@@ -39,20 +40,20 @@ async def create_embeddings() -> None:
         return
 
     # key is the url, value is a list of chunks for each url
-    chunked_docs = chunk_docs(docs, chunk_size=4, chunk_overlap=1)
+    chunked_docs = chunk_docs(docs, chunk_size=10, chunk_overlap=2)
 
     ollama_client = AsyncClient(host='http://localhost:11434')
 
     await pull_model(ollama_client, EMBEDDINGS_MODEL)
 
-    # TODO: clean all this shit up
-    # this type is a dict -> url: (chunk_text, chunk_embedding_vector)
-    chunked_embeddings: Dict[str, List[Tuple[str,List[float]]]] = {}
-
-    # create embeddings from chunked docs
+    # create embeddings from chunked docs and save to db
     num_urls = len(chunked_docs.keys())
     url_index = 0
     for url, url_content_chunks in chunked_docs.items():
+        # TODO: clean all this shit up
+        # this type is a dict -> url: (chunk_text, chunk_embedding_vector)
+        # chunked_embeddings: Dict[str, List[Tuple[str,List[float]]]] = {}
+
         url_index += 1
         num_chunks = len(url_content_chunks)
         embeddings: List[Tuple[str,List[float]]] = []
@@ -63,9 +64,10 @@ async def create_embeddings() -> None:
                 continue
             embeddings.append((chunk, vectors))
         if embeddings:
-            chunked_embeddings[url] = embeddings
+            await db.save_chunked_embeddings({url: embeddings})
+            # chunked_embeddings[url] = embeddings
 
-    await db.save_chunked_embeddings(chunked_embeddings)
+    # await db.save_chunked_embeddings(chunked_embeddings)
 
 
 async def pull_model(ollama_client: AsyncClient, model: str):

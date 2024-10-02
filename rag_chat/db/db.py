@@ -46,33 +46,6 @@ async def save_sitemap(sitemap: dict[str,datetime]) -> dict[str,datetime]:
 
     return {**records_to_insert, **records_to_update}
 
-    # if len(current_entries) == 0:
-    #     await db_conn.executemany(INSERT_MULTIPLE_URLS, [(url, lastmod) for url, lastmod in sitemap.items()])
-    #     return sitemap
-
-    # urls_in_db: dict[str,datetime] = {record["url"]: record["lastmod"] for record in current_entries}
-
-    # records_to_insert = {u: l for u, l in sitemap.items() if urls_in_db.get(u) is None}
-    # records_to_update: dict[str, datetime] = {}
-    # records_to_remove: list[str] = []
-
-    # for url, lastmod in urls_in_db.items():
-    #     if (new_url_lastmod := sitemap.get(url)) is None:
-    #         records_to_remove.append(url)
-    #     elif new_url_lastmod > lastmod:
-    #         records_to_update[url] = sitemap[url]
-
-    # print(f"DB: {len(records_to_insert)} records need to be inserted")
-    # await db_conn.executemany(INSERT_MULTIPLE_URLS, [(url, lastmod) for url, lastmod in records_to_insert.items()])
-
-    # print(f"DB: {len(records_to_update)} records need to be updated")
-    # await db_conn.executemany(UPDATE_LASTMOD, [(lastmod, url) for url, lastmod in records_to_update.items()])
-
-    # print(f"DB: {len(records_to_remove)} records need to be deleted")
-    # await db_conn.executemany(REMOVE_URL_FROM_SITEMAP, [url for url in records_to_remove])
-
-    # return {**records_to_insert, **records_to_update}
-
 
 async def save_chunked_embeddings(chunked_embeddings: Dict[str, List[Tuple[str, List[float]]]]):
     '''

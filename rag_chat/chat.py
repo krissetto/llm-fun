@@ -14,7 +14,8 @@ from db import db
 
 SHOULD_EXIT = False
 OLLAMA_HOST = 'http://localhost:11434'
-EMBEDDINGS_MODEL = "mxbai-embed-large"
+# EMBEDDINGS_MODEL = "mxbai-embed-large"
+EMBEDDINGS_MODEL = "nomic-embed-text"
 
 ollama_client = AsyncClient(host=OLLAMA_HOST)
 
@@ -135,7 +136,7 @@ Remember to always include the source of information in your response.
 <context>
 '''
         for record in res:
-            msg_content = f"Source URL: {record["source_url"]}\n\n{record["chunk_text"]}"
+            msg_content = f"Source URL: {record['source_url']}\n\n{record['chunk_text']}"
             context_msg += f"---\n\n{msg_content}\n\n"
 
         context_msg += "</context>"

@@ -52,22 +52,18 @@ async def create_embeddings() -> None:
     for url, url_content_chunks in chunked_docs.items():
         # TODO: clean all this shit up
         # this type is a dict -> url: (chunk_text, chunk_embedding_vector)
-        # chunked_embeddings: Dict[str, List[Tuple[str,List[float]]]] = {}
-
         url_index += 1
         num_chunks = len(url_content_chunks)
         embeddings: List[Tuple[str,List[float]]] = []
+        # TODO(krissetto): make this better, e.g. by making a single call 
+        # to ollama for all the chunks of a url
         for i, chunk in enumerate(url_content_chunks):
             print(f"embedding chunk {i} of url {url}\n({url_index}/{num_urls} urls | {i}/{num_chunks} chunks)\n\n")
             vectors = (await ollama_client.embed(model=EMBEDDINGS_MODEL, input=chunk)).get('embeddings')
-            if not vectors:
-                continue
-            embeddings.append((chunk, vectors))
+            if vectors:
+                embeddings.append((chunk, vectors))
         if embeddings:
             await db.save_chunked_embeddings({url: embeddings})
-            # chunked_embeddings[url] = embeddings
-
-    # await db.save_chunked_embeddings(chunked_embeddings)
 
 
 async def pull_model(ollama_client: AsyncClient, model: str):

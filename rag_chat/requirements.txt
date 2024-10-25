@@ -1,0 +1,12 @@
+aiohttp
+asyncpg
+bs4
+langchain-community
+langchain-experimental
+langchain-postgres
+lxml
+nltk
+ollama
+# ollama-python   # needed?
+pgvector
+sqlite-vec

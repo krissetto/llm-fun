@@ -2,8 +2,17 @@
 
 import asyncio
 import asyncpg
+import os
 
 from pgvector.asyncpg import register_vector
+
+DB_USER = os.environ.get("DB_USER", default="postgres")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", default="postgres")
+DB_NAME = os.environ.get("DB_NAME", default="rag")
+DB_HOST = os.environ.get("DB_HOST", default="localhost")
+DB_PORT = os.environ.get("DB_PORT", default=6024)
+
+print(f"Connecting to db {DB_NAME} on {DB_HOST}:{DB_PORT} as {DB_USER}")
 
 
 db_conn: asyncpg.connection.Connection = None
@@ -14,7 +23,7 @@ async def _init():
     if db_conn is not None:
         raise RuntimeError("DB has already been created, something weird is happening")
 
-    db_conn = await asyncpg.connect(user="postgres", password="postgres", database="rag2", host="localhost", port=6024)
+    db_conn = await asyncpg.connect(user=DB_USER, password=DB_PASSWORD, database=DB_NAME, host=DB_HOST, port=DB_PORT)
     await db_conn.execute('CREATE EXTENSION IF NOT EXISTS vector')
     await register_vector(db_conn)
     

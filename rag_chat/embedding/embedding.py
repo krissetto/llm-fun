@@ -10,6 +10,7 @@
     - Be able to update the docs embeddings behind the scenes when there are updates
 '''
 
+import os
 
 from typing import Dict, List, Tuple
 
@@ -20,9 +21,9 @@ import db
 from chunking.chunking import chunk_docs
 from scraping.scraping import get_docs_to_embed
 
-
 # EMBEDDINGS_MODEL = "mxbai-embed-large"
 EMBEDDINGS_MODEL = "nomic-embed-text"
+OLLAMA_HOST = os.environ.get("OLLAMA_HOST", 'http://localhost:11434')
 
 
 async def create_embeddings() -> None:
@@ -42,7 +43,7 @@ async def create_embeddings() -> None:
     # key is the url, value is a list of chunks for each url
     chunked_docs = chunk_docs(docs, chunk_size=10, chunk_overlap=2)
 
-    ollama_client = AsyncClient(host='http://localhost:11434')
+    ollama_client = AsyncClient(host=OLLAMA_HOST)
 
     await pull_model(ollama_client, EMBEDDINGS_MODEL)
 

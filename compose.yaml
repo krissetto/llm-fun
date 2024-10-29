@@ -18,6 +18,9 @@ services:
               count: ${OLLAMA_GPU_COUNT-1}
               capabilities:
                 - gpu
+    profiles:
+      - basic
+      - rag
 
 
   open-webui:
@@ -32,6 +35,8 @@ services:
       - 'OLLAMA_BASE_URL=http://ollama:11434'
       - 'WEBUI_SECRET_KEY='
     restart: unless-stopped
+    profiles:
+      - utils
 
 
   pgadmin:
@@ -42,6 +47,9 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: user-name@domain-name.com
       PGADMIN_DEFAULT_PASSWORD: langchain
+    depends_on:
+      pgvector:
+        condition: service_healthy
     volumes:
       - pgadmin-data:/var/lib/pgadmin
     profiles:
@@ -53,9 +61,9 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: rag2
+      POSTGRES_DB: rag
     healthcheck:
-      test: pg_isready -U postgres -d rag2
+      test: pg_isready -U postgres -d rag
       interval: 10s
       timeout: 3s
       retries: 3
@@ -63,6 +71,35 @@ services:
       - 6024:5432
     volumes:
       - local_pgdata2:/var/lib/postgresql/data
+    profiles:
+      - rag
+      - utils
+
+
+  basic_chat:
+    build: 
+      context: ./basic_chat
+    environment:
+      OLLAMA_HOST: ollama:11434
+    depends_on:
+      ollama:
+        condition: service_healthy
+    profiles:
+      - basic
+
+
+  rag_chat:
+    build: 
+      context: ./rag_chat
+    environment:
+      OLLAMA_HOST: ollama:11434
+      DB_HOST: pgvector
+      DB_PORT: 5432
+    depends_on:
+      pgvector:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
     profiles:
       - rag
 

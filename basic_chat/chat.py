@@ -1,6 +1,7 @@
 """Simple demo chat application using LLMs via ollama"""
 
 import asyncio
+import os
 import signal
 import sys
 
@@ -11,7 +12,7 @@ from ollama import AsyncClient, Message
 
 
 SHOULD_EXIT = False
-OLLAMA_HOST = 'http://localhost:11434'
+OLLAMA_HOST = os.environ.get("OLLAMA_HOST", 'http://localhost:11434')
 
 ollama_client = AsyncClient(host=OLLAMA_HOST)
 
@@ -19,7 +20,7 @@ ollama_client = AsyncClient(host=OLLAMA_HOST)
 async def main() -> None:
     """Entrypoint to the application"""
 
-    print("\n--- Demo LLM chat app with ollama ---\n")
+    print(f"\n--- Demo LLM chat app with ollama (host: {OLLAMA_HOST}) ---\n")
 
     # get the model to use from the first command line argument
     # if not provided, use the default model

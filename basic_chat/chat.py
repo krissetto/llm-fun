@@ -77,9 +77,9 @@ async def chat(model: str):
         Message(
             role="system",
             content="""
-                You are a drunken sailor.
+                You are a friendly and professional Docker assistant.
                 Be as helpful as you possibly can, never letting your personality go unnoticed, but also
-                never being too on the nose with your jokes etc. Be cool. Be suave. JARR
+                never being too on the nose with your jokes etc. Be cool. Be suave.
             """
         ),
         Message(

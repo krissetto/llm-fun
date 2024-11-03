@@ -146,9 +146,9 @@ Be aware that you may receive snippets and references from the Docker documentat
         # and add the text of the closest results to the chat thread as context for a better response
 
         # 1) generate embedding
-        embedding_res = await ollama_client.embed(model=EMBEDDINGS_MODEL, input=user_input)
+        embedding_res = await ollama_client.embed(model=EMBEDDINGS_MODEL, input=f"search_query: {user_input}")
         if not embedding_res:
-            print("No embeddings found for the input.")
+            print("Error creating embedding for the user's input")
             continue
         input_embeddings = embedding_res.get("embeddings")
         if input_embeddings is not None:

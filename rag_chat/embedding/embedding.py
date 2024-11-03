@@ -56,11 +56,11 @@ async def create_embeddings() -> None:
         url_index += 1
         num_chunks = len(url_content_chunks)
         embeddings: List[Tuple[str,List[float]]] = []
-        # TODO(krissetto): make this better, e.g. by making a single call 
+        # TODO(krissetto): make this better, e.g. by making a single call
         # to ollama for all the chunks of a url
         for i, chunk in enumerate(url_content_chunks):
             print(f"embedding chunk {i} of url {url}\n({url_index}/{num_urls} urls | {i}/{num_chunks} chunks)\n\n")
-            vectors = (await ollama_client.embed(model=EMBEDDINGS_MODEL, input=chunk)).get('embeddings')
+            vectors = (await ollama_client.embed(model=EMBEDDINGS_MODEL, input=f"search_document: {chunk}")).get('embeddings')
             if vectors:
                 embeddings.append((chunk, vectors))
         if embeddings:

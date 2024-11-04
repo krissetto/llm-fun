@@ -12,4 +12,5 @@ FROM python:3.12-slim
 WORKDIR /app
 COPY --link --from=build /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --link . .
-ENTRYPOINT [ "python", "chat.py" ]
+ENTRYPOINT [ "python" ]
+CMD [ "chat.py" ]

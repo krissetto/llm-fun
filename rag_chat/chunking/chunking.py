@@ -25,6 +25,14 @@ def chunk_docs(docs: Dict[str, str], chunk_size: int, chunk_overlap: int) -> Dic
 
     return output
 
+def _chunk_by_semantics(content: str, chunk_overlap: int) -> List[str]:
+    '''
+        Chunks content by semantic elements, according to what the llm thinks
+        
+        Returns a list of chunks as strings
+    '''
+    raise NotImplementedError
+
 
 def _chunk_by_sentence(content: str, chunk_size: int, chunk_overlap: int) -> List[str]:
     '''
@@ -56,6 +64,7 @@ def _chunk_by_sentence(content: str, chunk_size: int, chunk_overlap: int) -> Lis
 
 
     return chunks
+
 
 def _chunk_by_word(content: str, chunk_size: int, chunk_overlap: int) -> List[str]:
     '''

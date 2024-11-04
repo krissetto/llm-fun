@@ -10,6 +10,8 @@ services:
       interval: 5s
     ports: 
       - 11434:11434
+    environment:
+      - OLLAMA_MAX_LOADED_MODELS=2
     deploy:
       resources:
         reservations:
@@ -21,6 +23,7 @@ services:
     profiles:
       - basic
       - rag
+      - utils
 
 
   open-webui:
@@ -36,7 +39,6 @@ services:
       - 'WEBUI_SECRET_KEY='
     restart: unless-stopped
     profiles:
-      - rag
       - utils
 
 
@@ -71,7 +73,7 @@ services:
     ports:
       - 6024:5432
     volumes:
-      - local_pgdata2:/var/lib/postgresql/data
+      - local_pgdata:/var/lib/postgresql/data
     profiles:
       - rag
       - utils
@@ -106,7 +108,7 @@ services:
 
 
 volumes:
-  local_pgdata2:
+  local_pgdata:
   pgadmin-data:
   ollama:
   open-webui:

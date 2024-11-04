@@ -14,7 +14,7 @@ from .queries import (
 
 async def save_sitemap(sitemap: dict[str,datetime]) -> dict[str,datetime]:
     '''
-        Checks if any new url from the downloaded sitemap needs to be added to the db.
+        Checks, naively, if any new url from the downloaded sitemap needs to be added to the db.
         Returns a dict containing only the updated or newly added entries.
     '''
     current_entries = await db_conn.fetch(GET_ALL_URLS)

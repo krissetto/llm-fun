@@ -91,7 +91,7 @@ def parse_contents_from_urls(scraping_task_results: List[Tuple[str, bytes]]) -> 
     start_time = time.perf_counter()
 
     for url, html_text in scraping_task_results:
-        article_text, ok = _parse_response(html_text)
+        article_text, ok = _parse_response_into_markdown(html_text)
         if not ok:
             continue
         result[url] = article_text
@@ -99,9 +99,9 @@ def parse_contents_from_urls(scraping_task_results: List[Tuple[str, bytes]]) -> 
     print(f"parsing {len(scraping_task_results)} url contents took {time.perf_counter() - start_time:0.4f} seconds")
 
     return result
+    
 
-
-def _parse_response(page_text: bytes) -> tuple[str, bool]:
+def _parse_response_into_markdown(page_text: bytes) -> tuple[str, bool]:
     article_tags = SoupStrainer("article")
     soup = BS(page_text, 'lxml', parse_only=article_tags)
 

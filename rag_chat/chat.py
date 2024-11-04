@@ -106,14 +106,6 @@ Your goal is to assist users with Docker-related queries and tasks. Adhere to th
 
 Your objective is to be a helpful, accurate, brief and user-friendly assistant for all Docker-related inquiries."""
         ),
-#         Message(
-#             role="assistant",
-#             content="""
-# You are an assistant, attempting to help the user as best you can. 
-# You have access to the most recent chat messages in the thread, keep them into consideration.
-# When responding with code, use markdown. Format your responses in markdown whenever appropriate.
-#             """
-#         )
     ]
 
     # main chat loop. quit by typing "exit" or by hitting CTRL-C

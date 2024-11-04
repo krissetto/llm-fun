@@ -18,7 +18,7 @@ from bs4 import (
 import db
 
 
-async def get_docs_to_embed() -> dict[str, str]:
+async def get_docs_to_embed() -> Dict[str, str]:
     '''
         Get docs from the docker documentation website.
         

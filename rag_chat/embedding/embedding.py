@@ -14,34 +14,19 @@ import os
 
 from typing import Dict, List, Tuple
 
-from ollama import AsyncClient
+from ollama import AsyncClient, Message
 
 import db
 
-from chunking.chunking import chunk_docs
-from scraping.scraping import get_docs_to_embed
 
-# EMBEDDINGS_MODEL = "mxbai-embed-large"
 EMBEDDINGS_MODEL = "nomic-embed-text"
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", 'http://localhost:11434')
 
+# number of recent messages to keep in the chat history when generating a search query
+HISTORY_CUTOFF = 5
 
-async def create_embeddings() -> None:
-    '''
-        To-Do:
-        - Get docs [X]
-        - Split docs into chunks
-        - Create vector embeddings for the chunks
-        - Store vector embeddings into vector sqlite database
-    '''
-    # (url, content) dict
-    docs = await get_docs_to_embed()
-    if len(docs) == 0:
-        print("All docs are updated, there is nothing new to embed")
-        return
 
-    # key is the url, value is a list of chunks for each url
-    chunked_docs = chunk_docs(docs, chunk_size=10, chunk_overlap=2)
+async def create_embeddings(chunked_docs: Dict[str, List[str]]) -> None:
 
     ollama_client = AsyncClient(host=OLLAMA_HOST)
 
@@ -56,16 +41,76 @@ async def create_embeddings() -> None:
         url_index += 1
         num_chunks = len(url_content_chunks)
         embeddings: List[Tuple[str,List[float]]] = []
-        # TODO(krissetto): make this better, e.g. by making a single call 
+        # TODO(krissetto): make this better, e.g. by making a single call
         # to ollama for all the chunks of a url
         for i, chunk in enumerate(url_content_chunks):
             print(f"embedding chunk {i} of url {url}\n({url_index}/{num_urls} urls | {i}/{num_chunks} chunks)\n\n")
-            vectors = (await ollama_client.embed(model=EMBEDDINGS_MODEL, input=chunk)).get('embeddings')
+            vectors = (await ollama_client.embed(model=EMBEDDINGS_MODEL, input=f"search_document: {chunk}")).get('embeddings')
             if vectors:
                 embeddings.append((chunk, vectors))
         if embeddings:
             await db.save_chunked_embeddings({url: embeddings})
 
+
+async def generate_search_embeddings(
+        chat_thread: List[Message], 
+        user_input: str, 
+        ollama_client: AsyncClient, 
+        model: str
+) -> List:
+    if len(chat_thread) < 2:
+        # this is when the user sent their first message in the thread
+        embedding_res = await ollama_client.embed(model=EMBEDDINGS_MODEL, input=f"search_query: {user_input}")
+    else:
+        # this chat has a history, let's use it to best determine the search query when querying the vector db
+        # use the chat history to generate the search query using the main llm model
+        # remove irrelevant system and assistant prompts (at least the first 2 messages)
+        msgs_for_search_query = chat_thread[2:]
+        msgs_for_search_query = msgs_for_search_query[-HISTORY_CUTOFF:]
+        
+        rag_context_prompt = """
+    You are a search engine query generator. Based on the message history provided, create a search query for the user's last message. This search query will be used to gather relevant documents to better answer the user's question.
+
+    Examples:
+
+    If in a previous message the user asked 'what is x?' and they now ask 'how can I use it?', respond with 'using x', clarifying what 'it' stands for and writing it in a way to optimize for finding relevant documents.
+
+    <chat_history>
+
+
+    """
+
+        rag_context_prompt += ""
+        for msg in msgs_for_search_query:
+            rag_context_prompt += f"---\n\nrole: {msg.get('role')}\nmessage: {msg.get('content')}\n\n"
+        rag_context_prompt += "</chat_history>"
+        rag_context_prompt += f"\n<last_user_message>{user_input}</last_user_message>\n\n"
+
+        rag_context_prompt += """
+Answer by rewriting the user's last message as a search query for a search engine. Do not explain your answer, just output the search query to use. The search query is always a single short question or statement that represents the areas of knowledge required for answering the user's question. You will never answer the user's question directly.
+"""
+
+        search_query_res = await ollama_client.generate(
+            model=model,
+            prompt=rag_context_prompt,
+            options={'temperature': 0.35, 'num_ctx': 16384}
+        )
+
+        print(f"\n---\nUsing the following adapted search query: \"{search_query_res.get('response')}\"\n---\n")
+
+        embedding_res = await ollama_client.embed(model=EMBEDDINGS_MODEL, input=f"search_query: {search_query_res.get('response')}")
+        
+
+    if not embedding_res:
+        print("Error creating embedding for the user's input")
+        return []
+    input_embeddings = embedding_res.get("embeddings")
+    if input_embeddings is not None:
+        input_embeddings = input_embeddings[0]
+    else:
+        input_embeddings = []
+
+    return input_embeddings
 
 async def pull_model(ollama_client: AsyncClient, model: str):
     """uses ollama to pull a model"""

@@ -24,12 +24,23 @@
 
 import asyncio
 
+from chunking.chunking import chunk_docs
 from embedding.embedding import create_embeddings
+from scraping.scraping import get_docs_to_embed
 
 
 async def main():
     '''de-facto entrypoint'''
-    await create_embeddings()
+    # (url, content) dict
+    docs = await get_docs_to_embed()
+    if len(docs) == 0:
+        print("All docs are updated, there is nothing new to embed")
+        return
+    
+    # key is the url, value is a list of chunks for each url
+    chunked_docs = chunk_docs(docs, chunk_size=10, chunk_overlap=2)
+    
+    await create_embeddings(chunked_docs)
 
 
 if __name__ == "__main__":

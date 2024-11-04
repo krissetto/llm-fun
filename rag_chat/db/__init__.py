@@ -1,8 +1,8 @@
 '''super fugly db initialization stuff because i'm lazy'''
 
+import os
 import asyncio
 import asyncpg
-import os
 
 from pgvector.asyncpg import register_vector
 
@@ -55,7 +55,6 @@ create table if not exists embeddings (
     unique (url_id, chunk_text_id)
 );
 """)
-                        
 
 asyncio.get_event_loop().run_until_complete(_init())
 

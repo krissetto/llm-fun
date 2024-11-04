@@ -36,6 +36,7 @@ services:
       - 'WEBUI_SECRET_KEY='
     restart: unless-stopped
     profiles:
+      - rag
       - utils
 
 

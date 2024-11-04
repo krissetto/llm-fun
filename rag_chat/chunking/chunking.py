@@ -1,11 +1,11 @@
 '''for chunking stuff'''
 
-from typing import List
+from typing import Dict, List
 
 from nltk import tokenize, download as nltk_download
 
 
-def chunk_docs(docs: dict[str, str], chunk_size: int, chunk_overlap: int) -> dict[str, list[str]]:
+def chunk_docs(docs: Dict[str, str], chunk_size: int, chunk_overlap: int) -> Dict[str, List[str]]:
     '''
         Chunks docs into smaller pieces for better embeddings
         

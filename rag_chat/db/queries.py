@@ -52,7 +52,7 @@ GET_SIMILAR_EMBEDDINGS = '''
 select 
     url_mapping.url as source_url, 
     chunk_text_mapping.chunk_text, 
-    1 - (embeddings.chunk_embedding <=> $1) as cosine_similarity
+    1 - (embeddings.chunk_embedding <-> $1) as cosine_similarity
 from embeddings
 join url_mapping on embeddings.url_id = url_mapping.id
 join chunk_text_mapping on embeddings.chunk_text_id = chunk_text_mapping.id

@@ -12,6 +12,8 @@ from ollama import AsyncClient, Message
 
 from db import db
 
+from embedding.embedding import generate_search_embeddings
+
 
 SHOULD_EXIT = False
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", 'http://localhost:11434')
@@ -27,7 +29,7 @@ async def main() -> None:
 
     # get the model to use from the first command line argument
     # if not provided, use the default model
-    chat_model = sys.argv[1] if len(sys.argv) > 1 else "gemma2:2b"
+    chat_model = sys.argv[1] if len(sys.argv) > 1 else "llama3.2"
 
     # pull models so we're sure they're available
     await pull_models([chat_model, EMBEDDINGS_MODEL])
@@ -89,50 +91,29 @@ async def chat(model: str):
             content="""
 You are an AI assistant specialized in Docker and Docker-related technologies. Your knowledge encompasses the latest information about Docker tools, including Docker Build Cloud, Docker Scout, Docker Debug, and other Docker ecosystem products.
 
-Your primary role is to assist users with Docker-related queries and tasks. Adhere to these guidelines:
+Your goal is to assist users with Docker-related queries and tasks. Adhere to these rules:
 
-1. Focus exclusively on Docker-related topics. If a user's question is not Docker-related, politely inform them that it's outside your area of expertise and offer to help with Docker-specific questions.
+1. **Focus on Docker**: Address only Docker-related topics. Politely inform users if a question is outside this scope.
+2. **Provide Accurate Information**: Ensure responses are accurate and up-to-date, reflecting the latest Docker technologies and best practices.
+3. **Be Clear and Concise**: Offer clear, concise, and practical responses. Avoid unnecessary tangents unless specifically requested. When providing examples, limit them to at most 2-3 and keep them short.
+4. **Consider Context**: Pay attention to the most recent messages in the conversation history to maintain context.
+5. **Explain Commands and Configurations**: Provide clear but brief examples.
+6. **Acknowledge Uncertainty**: If unsure, acknowledge it and suggest where to find more accurate information.
+7. **Generate Accurate Code**: Follow best practices when creating Docker-related code. Avoid unnecessary changes the user hasn't requested.
+8. **Use Provided Context**: Rely only on the provided context for information. Ask for more details if needed.
+9. **Avoid Hallucination**: Do not make up information. To provide accurate information, used the context provided
+10. **Cite Sources**: Always cite your sources, including URLs, at the end of each message.
 
-2. Provide accurate, up-to-date information about Docker technologies, best practices, and use cases.
-
-3. Offer clear, concise responses that are informative and practical. Include fundamental details but avoid unnecessary tangents unless specifically requested, and make sure they are relevant to the user's question.
-
-4. When answering, consider the entire conversation history, especially recent messages. Pay close attention to context and previously discussed subjects, particularly when interpreting unclear pronouns like 'it', 'this', or 'that' in the user's latest question.
-
-5. Tailor your responses to the user's level of expertise, providing more detailed explanations for beginners and more advanced insights for experienced users.
-
-6. If asked about Docker commands or configurations, provide clear examples and explain their usage and potential impacts.
-
-7. When discussing Docker security or best practices, emphasize the importance of following official Docker guidelines and industry standards.
-
-8. If you're unsure about a specific detail, acknowledge your uncertainty and suggest where the user might find more accurate or up-to-date information.
-
-9. Encourage users to refer to official Docker documentation for the most current and comprehensive information.
-
-10. When generating a Dockerfile, compose.yaml file, or any other Docker-related code, consider all the best practices. Do not make any trivial changes that are not requested by the user, or that provide little to no value. Also make sure not to change the user's code unless necessary and be careful not to change the end result of the user's code (a dockerfile should still build, its targets must not be renamed, compose files should still run the containers and have the correct image names, etc.). If some context is missing, ask the user to provide more info on their precise issues. If the files are already in a good state, do not make any changes and let the user know the files are already in good shape!
-
-11. Use the provided <context></context> as your main source of information when responding
-
-Remember, always cite your sources! Your goal is to be a helpful, accurate, and user-friendly assistant for all Docker-related inquiries.
-
-Be aware that you may receive snippets and references from the Docker documentation as extra context. Consider this information alongside the user's query and any provided file context to provide more accurate and comprehensive answers.
-"""
-            # content="""
-            #     You are an expert assistant. Your job is to help the user answer their questions.
-            #     Be as helpful as you possibly can. Be cool. Be suave. Very demure.
-            #     You can only help with Docker, Docker products, and Docker-related topics and questions. For anything else, respond that it's outside your area of expertise. 
-            #     Give thorough responses with examples
-            #     Use the provided <context></context> as your main source of information when responding,
-            #     and always reference the source you use in your response.
-            # """
+Your objective is to be a helpful, accurate, brief and user-friendly assistant for all Docker-related inquiries."""
         ),
-        Message(
-            role="assistant",
-            content="""
-                You are an assistant, attempting to help the user as best you can. Below is the entire chat thread.
-                When responding with code, use markdown. Format your responses in markdown whenever appropriate.
-            """
-        )
+#         Message(
+#             role="assistant",
+#             content="""
+# You are an assistant, attempting to help the user as best you can. 
+# You have access to the most recent chat messages in the thread, keep them into consideration.
+# When responding with code, use markdown. Format your responses in markdown whenever appropriate.
+#             """
+#         )
     ]
 
     # main chat loop. quit by typing "exit" or by hitting CTRL-C
@@ -142,32 +123,19 @@ Be aware that you may receive snippets and references from the Docker documentat
         if user_input.lower() == 'exit':
             break
 
-        # TODO: create an embedding for the query, search the vector db for similarities,
-        # and add the text of the closest results to the chat thread as context for a better response
+        # 1) generate embedding for question
+        input_embeddings = await generate_search_embeddings(chat_thread, user_input, ollama_client, model)
 
-        # 1) generate embedding
-        embedding_res = await ollama_client.embed(model=EMBEDDINGS_MODEL, input=f"search_query: {user_input}")
-        if not embedding_res:
-            print("Error creating embedding for the user's input")
-            continue
-        input_embeddings = embedding_res.get("embeddings")
-        if input_embeddings is not None:
-            input_embeddings = input_embeddings[0]
-        else:
-            input_embeddings = []
-        
         # 2) query db for context chunks and their source urls
         res = await db.get_nearest_neighbors(embedding=input_embeddings, limit=5)
         context_msg = \
 '''
-Between the <context></context> tags you can find some chunks of 
-text from the Docker documentation that could be useful to help you answer the user's question. 
-Remember to always include the source of the information you use in your response.
-If the context doesn't seem relevant to the user's message, ignore it completely.
-If you don't seem to have enough context for answering, let the user know.
-
 <context>
 '''
+# Remember to always include the source of the information you use in your response.
+# If the context doesn't seem relevant to the user's message, ignore it completely.
+# If you don't seem to have enough context for answering, let the user know.
+
         for record in res:
             msg_content = f"Source URL: {record['source_url']}\n\n{record['chunk_text']}"
             context_msg += f"---\n\n{msg_content}\n\n"
@@ -177,14 +145,15 @@ If you don't seem to have enough context for answering, let the user know.
         # 3) add the context to the chat thread, either:
         #    - as part of the user message (most likely), or
         #    - as a separate message
-        chat_thread.append(Message(role="user", content=context_msg + f"\n\nUser query: {user_input}"))
+        chat_thread.append(Message(role="system", content=context_msg))
+        chat_thread.append(Message(role="user", content=user_input))
 
         # 4) chat with the model
         response = await ollama_client.chat(
             model=model,
             messages=chat_thread,
             stream=True,
-            options={'temperature': 0.85}
+            options={'temperature': 0.35, 'num_ctx': 16384}
         )
 
         llm_response_msg = ''

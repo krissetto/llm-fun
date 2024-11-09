@@ -12,7 +12,7 @@ from ollama import AsyncClient, Message
 
 from db import db
 
-from embedding.embedding import generate_search_embeddings
+from embedding.embedding import generate_embeddings, generate_search_embeddings
 
 
 SHOULD_EXIT = False
@@ -123,24 +123,42 @@ Your objective is to be a helpful, accurate, brief and user-friendly assistant f
         if user_input.lower() == 'exit':
             break
 
+#         # 1) generate embedding for question
+#         input_embeddings = await generate_search_embeddings(
+#             chat_thread=chat_thread, 
+#             user_input=user_input, 
+#             ai_client=ollama_client, 
+#             llm_model=model, 
+#             embeddings_model=EMBEDDINGS_MODEL
+# )
+
+#         # 2) query db for context chunks and their source urls
+#         res = await db.get_nearest_neighbors(embedding=input_embeddings, limit=5)
+
         # 1) generate embedding for question
-        input_embeddings = await generate_search_embeddings(chat_thread, user_input, ollama_client, model)
+        input_embeddings = await generate_embeddings(
+            user_input=user_input,
+            ai_client=ollama_client,
+            embeddings_model=EMBEDDINGS_MODEL)
 
         # 2) query db for context chunks and their source urls
         res = await db.get_nearest_neighbors(embedding=input_embeddings, limit=5)
-        context_msg = \
-'''
+
+        context_msg = '''
 <context>
+
 '''
 # Remember to always include the source of the information you use in your response.
 # If the context doesn't seem relevant to the user's message, ignore it completely.
 # If you don't seem to have enough context for answering, let the user know.
 
         for record in res:
-            msg_content = f"Source URL: {record['source_url']}\n\n{record['chunk_text']}"
+            msg_content = f"Source URL: {record['source_url']}\nContents:\n\n{record['chunk_text']}"
             context_msg += f"---\n\n{msg_content}\n\n"
 
         context_msg += "</context>"
+
+        print(f"Context:\n{context_msg}\n")
 
         # 3) add the context to the chat thread, either:
         #    - as part of the user message (most likely), or
@@ -153,7 +171,7 @@ Your objective is to be a helpful, accurate, brief and user-friendly assistant f
             model=model,
             messages=chat_thread,
             stream=True,
-            options={'temperature': 0.35, 'num_ctx': 16384}
+            options={'temperature': 0.35, 'num_ctx': 8192, 'num_thread': 12}
         )
 
         llm_response_msg = ''

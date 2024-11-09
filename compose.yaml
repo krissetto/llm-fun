@@ -35,8 +35,7 @@ services:
       - 'OLLAMA_BASE_URL=http://ollama:11434'
       - 'WEBUI_SECRET_KEY='
     restart: unless-stopped
-    profiles:
-      - rag
+    profiles: 
       - utils
 
 
@@ -74,7 +73,6 @@ services:
       - local_pgdata2:/var/lib/postgresql/data
     profiles:
       - rag
-      - utils
 
 
   basic_chat:

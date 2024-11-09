@@ -22,11 +22,20 @@
 '''
 
 
+import sys
+import os
+
 import asyncio
 
-from chunking.chunking import chunk_docs
-from embedding.embedding import create_embeddings
+from ollama import AsyncClient
+
+from chunking.chunking import chunk_docs_semantically
+from embedding.embedding import generate_content_embeddings_by_semantics, pull_model
 from scraping.scraping import get_docs_to_embed
+
+
+EMBEDDINGS_MODEL = "nomic-embed-text"
+OLLAMA_HOST = os.environ.get("OLLAMA_HOST", 'http://localhost:11434')
 
 
 async def main():
@@ -37,10 +46,21 @@ async def main():
         print("All docs are updated, there is nothing new to embed")
         return
     
-    # key is the url, value is a list of chunks for each url
-    chunked_docs = chunk_docs(docs, chunk_size=10, chunk_overlap=2)
+
+    # get the model to use from the first command line argument
+    # if not provided, use the default model
+    chat_model = sys.argv[1] if len(sys.argv) > 1 else "llama3.2"
+    print("using chat model: ", chat_model)
+
+    ollama_client = AsyncClient(host=OLLAMA_HOST)
+    await pull_model(ollama_client, EMBEDDINGS_MODEL)
+    await pull_model(ollama_client, chat_model)
     
-    await create_embeddings(chunked_docs)
+    # key is the url, value is a list of chunks for each url
+    chunked_docs = await chunk_docs_semantically(docs, ollama_client, chat_model)
+
+    # await create_embeddings(chunked_docs) <- this is the old way, will need adapting
+    await generate_content_embeddings_by_semantics(chunked_docs, ollama_client, chat_model, EMBEDDINGS_MODEL)
 
 
 if __name__ == "__main__":

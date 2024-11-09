@@ -3,4 +3,5 @@ set -e
 
 MODEL=${1:-""}
 
-docker compose --profile rag run --build rag_chat $MODEL
+docker compose --profile rag up --remove-orphans -d
+docker compose --profile rag run --remove-orphans --build rag_chat chat.py $MODEL
